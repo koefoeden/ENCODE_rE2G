@@ -73,7 +73,7 @@ rule generate_num_candidate_enh_gene:
 	conda:
 		"../envs/encode_re2g.yml"
 	resources:
-		mem_mb=partial(determine_mem_mb, min_gb=16)
+		mem_mb=partial(determine_mem_mb, min_gb=160)
 	output:
 		NumCandidateEnhGene = os.path.join(RESULTS_DIR, "{biosample}", "new_features", "NumCandidateEnhGene.tsv")
 	shell: 
@@ -93,7 +93,7 @@ rule generate_num_tss_enh_gene:
 	conda:
 		"../envs/encode_re2g.yml"
 	resources:
-		mem_mb=partial(determine_mem_mb, min_gb=32)
+		mem_mb=partial(determine_mem_mb, min_gb=320)
 	output:
 		numTSSEnhGene = os.path.join(RESULTS_DIR, "{biosample}", "new_features", "NumTSSEnhGene.tsv"),
 		extendedEnhancerRegions = temp(os.path.join(RESULTS_DIR, "{biosample}",  "new_features", "extendedEnhancerRegions.txt")),
