@@ -42,7 +42,7 @@ rule generate_e2g_predictions:
 	conda:
 		"../envs/encode_re2g.yml"
 	resources:
-		mem_mb=determine_mem_mb
+		mem_mb=ABC.determine_mem_mb
 	output: 
 		prediction_file = os.path.join(RESULTS_DIR, "{biosample}", "{model_name}", "encode_e2g_predictions.tsv.gz")
 	shell: 
@@ -67,7 +67,7 @@ rule filter_e2g_predictions:
 	conda:
 		"../envs/encode_re2g.yml"
 	resources:
-		mem_mb=determine_mem_mb
+		mem_mb=ABC.determine_mem_mb
 	output:
 		thresholded = os.path.join(RESULTS_DIR, "{biosample}", "{model_name}", "encode_e2g_predictions_threshold{threshold}.tsv.gz")
 	shell:
@@ -91,7 +91,7 @@ rule write_predictions_bedpe:
 	conda:
 		"../envs/encode_re2g.yml"
 	resources:
-		mem_mb=determine_mem_mb
+		mem_mb=ABC.determine_mem_mb
 	shell:
 		"""
 		python {params.scripts_dir}/model_application/process_model_output.py \
@@ -100,7 +100,7 @@ rule write_predictions_bedpe:
 			--bedpe_output {output.bedpe}
 		"""
 
-rule write_accessibility_bw_fie:
+rule write_accessibility_bw_file:
 	input:
 		input_file = lambda wildcards: get_input_for_bw(wildcards.biosample, wildcards.access_simple_id)
 	params:
@@ -111,21 +111,30 @@ rule write_accessibility_bw_fie:
 		out_bg = temp(os.path.join(IGV_DIR, "{biosample}", "{access_simple_id}.bg"))
 	conda:
 		"../envs/encode_re2g.yml"
-	threads: 16
+	resources:
+		mem_mb=ABC.determine_mem_mb,
+		runtime_hr=6
+	threads: 16 
 	shell:
 		"""
 		LC_ALL=C
+		export BUFFER_SIZE=$(awk -v mem_mb={resources.mem_mb} -v threads={threads} 'BEGIN {{ result = mem_mb/threads/2; print int(result) }}')
+		
 		# determine if the input file is BAM or TagAlign
 		if [[ {params.extension} == ".bam" ]]; then
 			# sort bam and filter to chromosomes
 			samtools sort {input.input_file} --threads {threads} | \
 				samtools view -bt {params.chr_sizes} --threads {threads} | \
 				bedtools genomecov -bg -ibam stdin | \
-				sort -k1,1 -k2,2n --parallel={threads} > {output.out_bg}
+				sort -k1,1 -k2,2n --parallel={threads}  -S $BUFFER_SIZE | \
+				awk '$4 > 0' > {output.out_bg}
 		else # tagAlign
 			# remove alt chromosomes and sort
-			zcat {input.input_file} | awk '$1 !~ /_/' | \
-				sort -k1,1 -k2,2n --parallel={threads} > {output.out_bg}
+			zcat {input.input_file} | \
+        		awk 'NR==FNR {{keep[$1]; next}} $1 in keep' {params.chr_sizes} - | \
+        		sort -k1,1 -k2,2n --parallel={threads}  -S $BUFFER_SIZE | \
+        		bedtools genomecov -bg -split -i - -g {params.chr_sizes} | \
+				awk '$4 > 0' > {output.out_bg}
 		fi
 
 		# bedgraph to bw
