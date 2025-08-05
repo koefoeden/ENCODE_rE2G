@@ -73,11 +73,7 @@ rule generate_num_candidate_enh_gene:
 	conda:
 		"../envs/encode_re2g.yml"
 	resources:
-<<<<<<< HEAD
-		mem_mb=partial(determine_mem_mb, min_gb=160)
-=======
-		mem_mb=partial(ABC.determine_mem_mb, min_gb=16)
->>>>>>> upstream/dev
+		mem_mb=partial(ABC.determine_mem_mb, min_gb=160)
 	output:
 		NumCandidateEnhGene = os.path.join(RESULTS_DIR, "{biosample}", "new_features", "NumCandidateEnhGene.tsv")
 	shell: 
