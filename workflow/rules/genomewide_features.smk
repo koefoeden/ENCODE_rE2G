@@ -178,7 +178,7 @@ rule add_external_features:
 	conda:
 		"../envs/encode_re2g.yml"
 	resources:
-		mem_mb=partial(ABC.determine_mem_mb, min_gb=min_mem)  
+		mem_mb=partial(ABC.determine_mem_mb, scaler = 32, min_gb=min_mem) # default scaler of 4 was not enough
 	script:
 		"../scripts/feature_tables/merge_external_features.R"
 
